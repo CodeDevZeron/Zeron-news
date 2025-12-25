@@ -1,352 +1,655 @@
 <!DOCTYPE html>
-<html lang="bn" data-theme="light">
+<html lang="bn">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NewsHub Pro | Live Update</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-
-    <style>
-        :root {
-            --primary: #006495;
-            --on-primary: #ffffff;
-            --container: #cbe6ff;
-            --on-container: #001e30;
-            --bg: #f8fdff;
-            --surface: #f8fdff;
-            --on-surface: #001f25;
-            --outline: #70777c;
-            --variant: #dee3eb;
-            --shadow: 0px 4px 8px rgba(0,0,0,0.08);
-            --font: 'Hind Siliguri', sans-serif;
-        }
-
-        [data-theme="dark"] {
-            --primary: #8dcdff;
-            --on-primary: #00344f;
-            --container: #004b71;
-            --on-container: #cbe6ff;
-            --bg: #001f25;
-            --surface: #001f25;
-            --on-surface: #a6eeff;
-            --outline: #899297;
-            --variant: #41484d;
-            --shadow: 0px 4px 12px rgba(0,0,0,0.5);
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: var(--font); background: var(--bg); color: var(--on-surface); transition: 0.3s; padding-bottom: 80px; }
-
-        /* Header */
-        .app-bar {
-            position: fixed; top: 0; left: 0; right: 0; height: 60px;
-            background: rgba(var(--surface), 0.95); backdrop-filter: blur(10px);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 16px; z-index: 1000; border-bottom: 1px solid var(--variant);
-        }
-        .logo { font-size: 22px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-        .refresh-btn { background: var(--container); border: none; padding: 8px; border-radius: 50%; color: var(--on-container); cursor: pointer; }
-
-        /* Category Filter */
-        .filter-scroller {
-            margin-top: 70px; padding: 0 16px; overflow-x: auto; white-space: nowrap; display: flex; gap: 8px; scrollbar-width: none;
-        }
-        .chip {
-            padding: 6px 16px; border-radius: 50px; border: 1px solid var(--outline);
-            background: transparent; color: var(--on-surface); font-family: var(--font);
-            cursor: pointer; transition: 0.2s; font-size: 14px;
-        }
-        .chip.active { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
-
-        /* News Grid */
-        .news-container {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 16px; padding: 16px; max-width: 1200px; margin: 0 auto;
-        }
-
-        /* News Card */
-        .card {
-            background: var(--surface); border-radius: 16px; overflow: hidden;
-            box-shadow: var(--shadow); border: 1px solid var(--variant);
-            display: flex; flex-direction: column; cursor: pointer;
-            animation: fadeIn 0.5s ease forwards; opacity: 0; transform: translateY(10px);
-        }
-        
-        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
-
-        .card-img-wrap { height: 180px; position: relative; background: var(--variant); overflow: hidden; }
-        .card-img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
-        .source-badge {
-            position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7);
-            color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 11px;
-        }
-
-        .card-content { padding: 12px; }
-        .time-stamp { font-size: 12px; color: var(--primary); font-weight: 600; margin-bottom: 4px; display: block; }
-        .news-title { font-size: 17px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; }
-        .news-excerpt { font-size: 14px; opacity: 0.8; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-        /* Skeleton Loader */
-        .skeleton {
-            background: linear-gradient(90deg, var(--variant) 25%, var(--bg) 50%, var(--variant) 75%);
-            background-size: 200% 100%; animation: shimmer 1.5s infinite;
-        }
-        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .sk-card { height: 280px; border-radius: 16px; margin-bottom: 0; }
-        .sk-img { height: 180px; width: 100%; }
-        .sk-text { height: 15px; margin: 10px; border-radius: 4px; width: 80%; }
-
-        /* Status Bar */
-        .status-bar {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: #333; color: white; padding: 8px 16px; border-radius: 20px;
-            font-size: 12px; z-index: 2000; opacity: 0; transition: 0.3s; pointer-events: none;
-        }
-        .status-bar.show { opacity: 1; }
-
-        /* Modal */
-        .modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000;
-            display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: 0.3s;
-        }
-        .modal-overlay.open { opacity: 1; pointer-events: all; }
-        .modal-box {
-            background: var(--surface); width: 100%; max-width: 800px; margin: 0 auto;
-            height: 90vh; border-radius: 20px 20px 0 0; display: flex; flex-direction: column;
-            transform: translateY(100%); transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .modal-overlay.open .modal-box { transform: translateY(0); }
-        
-        .modal-header { padding: 16px; display: flex; justify-content: space-between; border-bottom: 1px solid var(--variant); }
-        .modal-body { overflow-y: auto; padding: 16px; padding-bottom: 100px; }
-        .modal-title { font-size: 22px; font-weight: 700; margin: 10px 0; }
-        .full-btn {
-            display: block; width: 100%; padding: 14px; text-align: center;
-            background: var(--primary); color: white; text-decoration: none;
-            border-radius: 12px; margin-top: 20px; font-weight: 600;
-        }
-
-        /* Telegram Float */
-        .tg-float {
-            position: fixed; bottom: 20px; right: 20px; background: #2AABEE;
-            color: white; padding: 12px 20px; border-radius: 50px; font-weight: 600;
-            text-decoration: none; box-shadow: 0 4px 10px rgba(42,171,238,0.4); z-index: 2900;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BD News 24 | Latest Updates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+:root {
+    --primary: #006C51;
+    --on-primary: #ffffff;
+    --primary-container: #85F8CC;
+    --on-primary-container: #002117;
+    --secondary: #4C6359;
+    --on-secondary: #ffffff;
+    --surface: #FBFDFA;
+    --on-surface: #191C1B;
+    --surface-variant: #DBE5DE;
+    --on-surface-variant: #404944;
+    --outline: #707974;
+    --background: #FBFDFA;
+    --shadow: rgba(0, 0, 0, 0.1);
+    --card-bg: #ffffff;
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+[data-theme="dark"] {
+    --primary: #67DBB1;
+    --on-primary: #003828;
+    --primary-container: #00513C;
+    --on-primary-container: #85F8CC;
+    --secondary: #B3CCBE;
+    --on-secondary: #1E352C;
+    --surface: #191C1B;
+    --on-surface: #E1E3E0;
+    --surface-variant: #404944;
+    --on-surface-variant: #BFC9C2;
+    --outline: #8A938D;
+    --background: #191C1B;
+    --shadow: rgba(0, 0, 0, 0.4);
+    --card-bg: #202522;
+}
+[data-theme="ocean"] {
+    --primary: #0061A4;
+    --on-primary: #FFFFFF;
+    --primary-container: #D1E4FF;
+    --on-primary-container: #001D36;
+    --surface: #FDFCFF;
+    --on-surface: #1A1C1E;
+    --background: #FDFCFF;
+    --card-bg: #EEF5FC;
+}
+[data-theme="sunset"] {
+    --primary: #9C4146;
+    --on-primary: #FFFFFF;
+    --primary-container: #FFDAD9;
+    --on-primary-container: #410009;
+    --surface: #FCFCFC;
+    --on-surface: #201A1A;
+    --background: #FCFCFC;
+    --card-bg: #FFF0F0;
+}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+body {
+    font-family: 'Hind Siliguri', sans-serif;
+    background-color: var(--background);
+    color: var(--on-surface);
+    transition: var(--transition);
+    overflow-x: hidden;
+}
+.app-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(var(--surface), 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 1000;
+    box-shadow: 0 1px 3px var(--shadow);
+    background-color: var(--card-bg);
+}
+.brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.actions {
+    display: flex;
+    gap: 8px;
+}
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--on-surface-variant);
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.icon-btn:hover {
+    background-color: var(--surface-variant);
+    color: var(--primary);
+}
+.theme-menu {
+    position: absolute;
+    top: 70px;
+    right: 16px;
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 8px;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 4px 20px var(--shadow);
+    z-index: 1001;
+    min-width: 150px;
+    border: 1px solid var(--outline);
+}
+.theme-menu.active {
+    display: flex;
+    animation: fadeIn 0.2s ease;
+}
+.theme-option {
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    transition: var(--transition);
+}
+.theme-option:hover {
+    background-color: var(--surface-variant);
+}
+.theme-color-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+.container {
+    max-width: 1200px;
+    margin: 80px auto 20px;
+    padding: 0 16px;
+}
+.filters {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    scrollbar-width: none;
+}
+.filters::-webkit-scrollbar {
+    display: none;
+}
+.chip {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--outline);
+    background: transparent;
+    color: var(--on-surface-variant);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: 'Hind Siliguri', sans-serif;
+}
+.chip.active {
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    border-color: var(--primary-container);
+}
+.news-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+}
+.news-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: var(--transition);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+}
+.news-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px var(--shadow);
+}
+.card-image-container {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    overflow: hidden;
+    background-color: var(--surface-variant);
+}
+.card-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+.news-card:hover .card-image {
+    transform: scale(1.05);
+}
+.source-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+.card-content {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+.news-time {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.news-title {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--on-surface);
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.read-more-btn {
+    margin-top: auto;
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-weight: 600;
+    text-align: right;
+    cursor: pointer;
+    font-family: 'Hind Siliguri', sans-serif;
+    padding: 8px 0;
+}
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.modal-overlay.open {
+    display: flex;
+    opacity: 1;
+}
+.modal {
+    background: var(--card-bg);
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    border-radius: 24px;
+    overflow-y: auto;
+    position: relative;
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+.modal-overlay.open .modal {
+    transform: scale(1);
+}
+.modal-header {
+    position: sticky;
+    top: 0;
+    background: var(--card-bg);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--outline);
+    z-index: 10;
+}
+.close-btn {
+    background: var(--surface-variant);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--on-surface);
+}
+.modal-body {
+    padding: 24px;
+}
+.modal-img {
+    width: 100%;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+.modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--on-surface);
+}
+.modal-text {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--on-surface-variant);
+    white-space: pre-line;
+}
+.footer {
+    text-align: center;
+    padding: 40px 16px;
+    background: var(--surface-variant);
+    margin-top: 40px;
+    color: var(--on-surface-variant);
+}
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+}
+.social-btn {
+    text-decoration: none;
+    color: var(--primary);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--background);
+    border-radius: 50px;
+    transition: var(--transition);
+}
+.social-btn:hover {
+    transform: scale(1.05);
+    background: var(--primary);
+    color: var(--on-primary);
+}
+.loader {
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+}
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--surface-variant);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--outline);
+    border-radius: 4px;
+}
+@media (max-width: 600px) {
+    .news-grid { grid-template-columns: 1fr; }
+    .modal-title { font-size: 20px; }
+    .brand span { display: none; }
+    .brand::after { content: 'BD News'; }
+}
+</style>
 </head>
-<body>
+<body data-theme="default">
 
-    <header class="app-bar">
-        <div class="logo">
-            <span class="material-icons-round">feed</span> NewsHub
-        </div>
-        <div style="display:flex; gap:10px;">
-            <button class="refresh-btn" onclick="toggleTheme()"><span class="material-icons-round" id="themeIcon">light_mode</span></button>
-            <button class="refresh-btn" onclick="reloadData()"><span class="material-icons-round">refresh</span></button>
-        </div>
-    </header>
+<nav class="app-bar">
+    <div class="brand">
+        <span class="material-icons-round">newspaper</span>
+        <span>বাংলাদেশ নিউজ ২৪</span>
+    </div>
+    <div class="actions">
+        <button class="icon-btn" onclick="refreshNews()" title="Refresh">
+            <span class="material-icons-round">refresh</span>
+        </button>
+        <button class="icon-btn" onclick="toggleThemeMenu()" title="Change Theme">
+            <span class="material-icons-round">palette</span>
+        </button>
+    </div>
+</nav>
 
-    <div class="filter-scroller">
-        <button class="chip active" onclick="filterNews('all', this)">সব খবর</button>
-        <button class="chip" onclick="filterNews('jamuna', this)">যমুনা টিভি</button>
-        <button class="chip" onclick="filterNews('somoy', this)">সময় সংবাদ</button>
-        <button class="chip" onclick="filterNews('channel24', this)">চ্যানেল ২৪</button>
-        <button class="chip" onclick="filterNews('itv', this)">আইটিভি</button>
+<div class="theme-menu" id="themeMenu">
+    <div class="theme-option" onclick="setTheme('default')">
+        <div class="theme-color-dot" style="background: #006C51;"></div> প্রকৃতি (ডিফল্ট)
+    </div>
+    <div class="theme-option" onclick="setTheme('dark')">
+        <div class="theme-color-dot" style="background: #191C1B;"></div> ডার্ক মোড
+    </div>
+    <div class="theme-option" onclick="setTheme('ocean')">
+        <div class="theme-color-dot" style="background: #0061A4;"></div> ওশান ব্লু
+    </div>
+    <div class="theme-option" onclick="setTheme('sunset')">
+        <div class="theme-color-dot" style="background: #9C4146;"></div> সানসেট রেড
+    </div>
+</div>
+
+<div class="container">
+    <div class="filters" id="sourceFilters">
+        <button class="chip active" onclick="filterNews('all')">সব খবর</button>
+        <button class="chip" onclick="filterNews('Jamuna TV')">যমুনা টিভি</button>
+        <button class="chip" onclick="filterNews('Somoy News')">সময় নিউজ</button>
+        <button class="chip" onclick="filterNews('Channel 24')">চ্যানেল ২৪</button>
+        <button class="chip" onclick="filterNews('ITV BD')">আইটিভি</button>
     </div>
 
-    <div id="statusToast" class="status-bar">Connecting...</div>
+    <div id="newsContainer" class="news-grid"></div>
+    <div id="loader" class="loader"><div class="spinner"></div></div>
+</div>
 
-    <main id="newsFeed" class="news-container">
-        </main>
-
-    <div id="modal" class="modal-overlay" onclick="closeModal(event)">
-        <div class="modal-box" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <span style="font-weight:600;">বিস্তারিত</span>
-                <span class="material-icons-round" style="cursor:pointer;" onclick="closeModalDirect()">close</span>
-            </div>
-            <div class="modal-body">
-                <img id="mImg" src="" style="width:100%; border-radius:12px; margin-bottom:10px;">
-                <span id="mSource" style="color:var(--primary); font-size:12px; font-weight:bold; background:var(--container); padding:4px 8px; border-radius:4px;"></span>
-                <h2 id="mTitle" class="modal-title"></h2>
-                <p id="mBody" style="line-height:1.6; opacity:0.9; white-space: pre-line;"></p>
-                <a id="mLink" href="#" target="_blank" class="full-btn">মূল নিউজ দেখুন</a>
-            </div>
+<div class="modal-overlay" id="newsModal" onclick="closeModal(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 style="font-size: 16px; color: var(--primary);">বিস্তারিত খবর</h3>
+            <button class="close-btn" onclick="closeModalDirect()">
+                <span class="material-icons-round">close</span>
+            </button>
         </div>
+        <div class="modal-body" id="modalContent"></div>
     </div>
+</div>
 
-    <a href="https://t.me/CodeDevZeron" target="_blank" class="tg-float">
-        Join Channel <span class="material-icons-round" style="font-size:16px; vertical-align:middle;">send</span>
-    </a>
+<footer class="footer">
+    <p>&copy; ২০২৫ BD News 24. সর্বস্বত্ব সংরক্ষিত।</p>
+    <div class="social-links">
+        <a href="https://t.me/CodeDevZeron" target="_blank" rel="noopener noreferrer" class="social-btn">
+            <span class="material-icons-round">send</span> টেলিগ্রাম চ্যানেল
+        </a>
+        <a href="https://t.me/DevZeron" target="_blank" rel="noopener noreferrer" class="social-btn">
+            <span class="material-icons-round">person</span> অ্যাডমিন
+        </a>
+    </div>
+</footer>
 
-    <script>
-        // API Proxy to bypass CORS issues
-        const PROXY_URL = "https://api.allorigins.win/raw?url=";
+<script>
+    const apiEndpoints = [
+        { url: 'https://news-api-kohl-delta.vercel.app/jamuna.tv', name: 'Jamuna TV' },
+        { url: 'https://news-api-kohl-delta.vercel.app/somoynews.tv', name: 'Somoy News' },
+        { url: 'https://news-api-kohl-delta.vercel.app/channel24bd.tv', name: 'Channel 24' },
+        { url: 'https://news-api-kohl-delta.vercel.app/itvbd.com', name: 'ITV BD' }
+    ];
+
+    let allNewsData = [];
+    let currentFilter = 'all';
+
+    function init() {
+        const savedTheme = localStorage.getItem('theme') || 'default';
+        setTheme(savedTheme);
+        fetchNews();
         
-        const sources = [
-            { id: 'jamuna', name: 'Jamuna TV', url: 'https://news-api-kohl-delta.vercel.app/jamuna.tv' },
-            { id: 'somoy', name: 'Somoy TV', url: 'https://news-api-kohl-delta.vercel.app/somoynews.tv' },
-            { id: 'channel24', name: 'Channel 24', url: 'https://news-api-kohl-delta.vercel.app/channel24bd.tv' },
-            { id: 'itv', name: 'ITV BD', url: 'https://news-api-kohl-delta.vercel.app/itvbd.com' }
-        ];
+        setInterval(fetchNews, 60000);
+    }
 
-        let allNewsData = [];
-        let currentFilter = 'all';
+    function toggleThemeMenu() {
+        document.getElementById('themeMenu').classList.toggle('active');
+    }
 
-        // --- Core Functions ---
+    function setTheme(themeName) {
+        document.body.setAttribute('data-theme', themeName);
+        localStorage.setItem('theme', themeName);
+        document.getElementById('themeMenu').classList.remove('active');
+    }
 
-        function init() {
-            renderSkeletons();
-            showStatus("নিউজ লোড হচ্ছে...");
-            loadAllSources();
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.theme-menu') && !e.target.closest('button[onclick="toggleThemeMenu()"]')) {
+            document.getElementById('themeMenu').classList.remove('active');
         }
+    });
 
-        function renderSkeletons() {
-            const container = document.getElementById('newsFeed');
-            container.innerHTML = '';
-            for(let i=0; i<6; i++) {
-                container.innerHTML += `
-                    <div class="card sk-card">
-                        <div class="skeleton sk-img"></div>
-                        <div class="skeleton sk-text"></div>
-                        <div class="skeleton sk-text" style="width:60%"></div>
-                    </div>
-                `;
+    async function fetchNews() {
+        const loader = document.getElementById('loader');
+        const container = document.getElementById('newsContainer');
+        
+        if(allNewsData.length === 0) loader.style.display = 'flex';
+
+        // Using a CORS proxy to bypass localhost restrictions
+        const corsProxy = 'https://api.allorigins.win/raw?url=';
+
+        try {
+            const promises = apiEndpoints.map(api => 
+                fetch(corsProxy + encodeURIComponent(api.url))
+                .then(res => res.json())
+                .then(data => ({
+                    source: api.name,
+                    news: data.news || []
+                })).catch(err => {
+                    console.error('Error fetching ' + api.name, err);
+                    return { source: api.name, news: [] };
+                })
+            );
+
+            const results = await Promise.all(promises);
+            allNewsData = results.flatMap(item => 
+                item.news.map(news => ({ ...news, source: item.source }))
+            );
+
+            allNewsData.sort((a, b) => b.id - a.id);
+
+            renderNews();
+            loader.style.display = 'none';
+        } catch (error) {
+            console.error('Global Fetch Error', error);
+            loader.style.display = 'none';
+            if(allNewsData.length === 0) {
+                container.innerHTML = '<p style="text-align:center; width:100%;">নিউজ লোড করতে সমস্যা হয়েছে। দয়া করে কিছুক্ষণ পর আবার চেষ্টা করুন।</p>';
             }
         }
+    }
 
-        function loadAllSources() {
-            allNewsData = []; // Clear old data
-            let loadedCount = 0;
+    function filterNews(source) {
+        currentFilter = source;
+        document.querySelectorAll('.chip').forEach(btn => {
+            btn.classList.remove('active');
+            if(btn.innerText.includes(source === 'all' ? 'সব খবর' : source)) {
+                btn.classList.add('active');
+            }
+        });
+        renderNews();
+    }
 
-            sources.forEach(source => {
-                // Using Proxy to fetch data
-                fetch(PROXY_URL + encodeURIComponent(source.url))
-                    .then(response => {
-                        if (!response.ok) throw new Error("Network Error");
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success && data.news) {
-                            const formattedNews = data.news.map(item => ({
-                                ...item,
-                                sourceId: source.id,
-                                sourceName: source.name
-                            }));
-                            
-                            // Add to global array
-                            allNewsData = [...allNewsData, ...formattedNews];
-                            
-                            // Remove skeletons on first load
-                            if (loadedCount === 0) {
-                                document.getElementById('newsFeed').innerHTML = '';
-                            }
-                            
-                            // Render immediately
-                            renderNews();
-                            showStatus(`${source.name} আপডেটেড`);
-                            loadedCount++;
-                        }
-                    })
-                    .catch(err => {
-                        console.error("Failed to load:", source.name, err);
-                        // Don't show error to user immediately unless all fail
-                    });
-            });
+    function renderNews() {
+        const container = document.getElementById('newsContainer');
+        container.innerHTML = '';
+
+        const filtered = currentFilter === 'all' 
+            ? allNewsData 
+            : allNewsData.filter(n => n.source === currentFilter);
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<p style="text-align:center; width:100%; color:var(--on-surface-variant);">কোনো খবর পাওয়া যায়নি।</p>';
+            return;
         }
 
-        function renderNews() {
-            const container = document.getElementById('newsFeed');
+        filtered.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'news-card';
+            card.onclick = () => openModal(item);
             
-            // Filter Data
-            let displayData = currentFilter === 'all' 
-                ? allNewsData 
-                : allNewsData.filter(n => n.sourceId === currentFilter);
-            
-            // Sort by ID (usually implies newer) or just shuffle slightly for variety
-            // displayData.sort((a, b) => b.id - a.id); 
+            const cleanTitle = item.title ? item.title.replace(/<[^>]*>?/gm, '') : 'শিরোনাম নেই';
+            const cleanTime = item.time ? item.time.replace('প্রকাশ:', '').trim() : '';
 
-            if (displayData.length === 0) return;
-
-            // Clear container ONLY if we are appending new data to a fresh state
-            // But here we want to re-render the sorted/filtered list
-            container.innerHTML = '';
-
-            displayData.forEach(news => {
-                const el = document.createElement('div');
-                el.className = 'card';
-                el.onclick = () => openModal(news);
-                
-                // Fallback Image
-                const img = news.image || 'https://via.placeholder.com/400x200?text=No+Image';
-
-                el.innerHTML = `
-                    <div class="card-img-wrap">
-                        <img src="${img}" class="card-img" loading="lazy" onerror="this.src='https://placehold.co/400x250?text=News'">
-                        <span class="source-badge">${news.sourceName}</span>
+            card.innerHTML = `
+                <div class="card-image-container">
+                    <img src="${item.image}" alt="News Image" class="card-image" loading="lazy" onerror="this.src='https://placehold.co/600x400?text=No+Image'">
+                    <div class="source-badge">${item.source}</div>
+                </div>
+                <div class="card-content">
+                    <div class="news-time">
+                        <span class="material-icons-round" style="font-size: 14px;">schedule</span>
+                        ${cleanTime}
                     </div>
-                    <div class="card-content">
-                        <span class="time-stamp">${news.time || 'সদ্যপ্রাপ্ত'}</span>
-                        <h3 class="news-title">${news.title}</h3>
-                        <p class="news-excerpt">${news.body ? news.body.substring(0, 80) + '...' : ''}</p>
-                    </div>
-                `;
-                container.appendChild(el);
-            });
+                    <h3 class="news-title">${cleanTitle}</h3>
+                    <button class="read-more-btn">বিস্তারিত পড়ুন</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function openModal(newsItem) {
+        const modal = document.getElementById('newsModal');
+        const content = document.getElementById('modalContent');
+        
+        content.innerHTML = `
+            <img src="${newsItem.image}" class="modal-img" alt="Detail Image" onerror="this.src='https://placehold.co/800x500?text=No+Image'">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; color:var(--primary);">
+                <small>${newsItem.source}</small>
+                <small>${newsItem.time || ''}</small>
+            </div>
+            <h2 class="modal-title">${newsItem.title}</h2>
+            <p class="modal-text">${newsItem.body ? newsItem.body.replace(/\n/g, '<br><br>') : 'বিস্তারিত তথ্য নেই'}</p>
+            <br>
+            <p style="color:var(--outline); font-size:14px;">রিপোর্টার: ${newsItem.reporter || 'অনলাইন ডেস্ক'}</p>
+        `;
+
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            closeModalDirect();
         }
+    }
 
-        function filterNews(id, btn) {
-            currentFilter = id;
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            renderNews();
-        }
+    function closeModalDirect() {
+        document.getElementById('newsModal').classList.remove('open');
+        document.body.style.overflow = 'auto';
+    }
 
-        function reloadData() {
-            renderSkeletons();
-            loadAllSources();
-        }
+    function refreshNews() {
+        const container = document.getElementById('newsContainer');
+        container.innerHTML = '';
+        fetchNews();
+    }
 
-        // --- Modal & UI ---
-
-        function openModal(news) {
-            document.getElementById('mImg').src = news.image || '';
-            document.getElementById('mTitle').innerText = news.title;
-            document.getElementById('mBody').innerText = news.body || 'বিস্তারিত নেই';
-            document.getElementById('mSource').innerText = news.sourceName;
-            document.getElementById('mLink').href = news.url;
-            
-            document.getElementById('modal').classList.add('open');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeModal(e) { if(e.target.id === 'modal') closeModalDirect(); }
-        function closeModalDirect() {
-            document.getElementById('modal').classList.remove('open');
-            document.body.style.overflow = '';
-        }
-
-        function showStatus(msg) {
-            const t = document.getElementById('statusToast');
-            t.innerText = msg;
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 3000);
-        }
-
-        function toggleTheme() {
-            const html = document.documentElement;
-            const isDark = html.getAttribute('data-theme') === 'dark';
-            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            document.getElementById('themeIcon').innerText = isDark ? 'light_mode' : 'dark_mode';
-        }
-
-        // Start
-        init();
-
-    </script>
+    window.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>
